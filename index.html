@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>File Searcher</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      background: #00c3ff;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .file-box {
+      background: #222;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📁 File Searcher</h1>
+
+<!-- AUTH SECTION -->
+<div id="auth">
+  <h2>Login</h2>
+  <input type="email" id="loginEmail" placeholder="Email"><br>
+  <input type="password" id="loginPassword" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+
+  <h2>Sign Up</h2>
+  <input type="email" id="signupEmail" placeholder="Email"><br>
+  <input type="password" id="signupPassword" placeholder="Password"><br>
+  <button onclick="signup()">Sign Up</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+
+  <h2>Welcome <span id="userEmail"></span></h2>
+  <button onclick="logout()">Logout</button>
+
+  <hr>
+
+  <h2>📤 Publish File</h2>
+  <input type="text" id="fileTitle" placeholder="File Title"><br>
+  <input type="file" id="fileInput"><br>
+  <button onclick="publishFile()">Publish</button>
+
+  <hr>
+
+  <h2>🔎 Search Files</h2>
+  <input type="text" id="searchInput" placeholder="Search word">
+  <button onclick="searchFiles()">Search</button>
+
+  <div id="results"></div>
+
+</div>
+
+<script>
+let currentUser = null;
+
+// Load saved users
+function getUsers() {
+  return JSON.parse(localStorage.getItem("users")) || [];
+}
+
+function saveUsers(users) {
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+function signup() {
+  let email = document.getElementById("signupEmail").value;
+  let password = document.getElementById("signupPassword").value;
+
+  if (!email || !password) {
+    alert("Fill all fields!");
+    return;
+  }
+
+  let users = getUsers();
+
+  if (users.find(u => u.email === email)) {
+    alert("Account already exists!");
+    return;
+  }
+
+  users.push({ email, password });
+  saveUsers(users);
+  alert("Account created!");
+}
+
+function login() {
+  let email = document.getElementById("loginEmail").value;
+  let password = document.getElementById("loginPassword").value;
+
+  let users = getUsers();
+  let user = users.find(u => u.email === email && u.password === password);
+
+  if (!user) {
+    alert("Invalid login!");
+    return;
+  }
+
+  currentUser = email;
+  document.getElementById("auth").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("userEmail").innerText = email;
+}
+
+function logout() {
+  currentUser = null;
+  document.getElementById("auth").classList.remove("hidden");
+  document.getElementById("app").classList.add("hidden");
+}
+
+// FILE STORAGE
+function getFiles() {
+  return JSON.parse(localStorage.getItem("files")) || [];
+}
+
+function saveFiles(files) {
+  localStorage.setItem("files", JSON.stringify(files));
+}
+
+function publishFile() {
+  let title = document.getElementById("fileTitle").value;
+  let fileInput = document.getElementById("fileInput");
+  let file = fileInput.files[0];
+
+  if (!title || !file) {
+    alert("Add title and file!");
+    return;
+  }
+
+  let reader = new FileReader();
+
+  reader.onload = function(e) {
+    let files = getFiles();
+    files.push({
+      title,
+      name: file.name,
+      data: e.target.result,
+      uploader: currentUser
+    });
+    saveFiles(files);
+    alert("File published!");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function searchFiles() {
+  let searchWord = document.getElementById("searchInput").value.toLowerCase();
+  let resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "";
+
+  let files = getFiles();
+
+  let filtered = files.filter(f =>
+    f.title.toLowerCase().includes(searchWord)
+  );
+
+  if (filtered.length === 0) {
+    resultsDiv.innerHTML = "<p>No files found</p>";
+    return;
+  }
+
+  filtered.forEach(file => {
+    let div = document.createElement("div");
+    div.className = "file-box";
+
+    div.innerHTML = `
+      <h3>${file.title}</h3>
+      <p>Uploaded by: ${file.uploader}</p>
+      <a href="${file.data}" download="${file.name}">
+        <button>Download</button>
+      </a>
+    `;
+
+    resultsDiv.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>
